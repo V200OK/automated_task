@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'package:path/path.dart' as p;
+import 'package:path/path.dart' as path;
 import 'package:yaml/yaml.dart';
 
 class AutomatedTaskException implements Exception {
@@ -95,7 +95,7 @@ Future<AutomationRunResult> runAutomatedTask({
 
     final copiedApk = await File(
       apkPath,
-    ).copy(p.join(outputDir.path, uploadFileName));
+    ).copy(path.join(outputDir.path, uploadFileName));
 
     final request =
         http.MultipartRequest('POST', Uri.parse('https://upload.diawi.com'))
@@ -107,7 +107,7 @@ Future<AutomationRunResult> runAutomatedTask({
     final uploadResponse = await httpClient.send(request);
     final body = await uploadResponse.stream.bytesToString();
 
-    final responseFilePath = p.join(outputDir.path, outputFileName);
+    final responseFilePath = path.join(outputDir.path, outputFileName);
     await File(responseFilePath).writeAsString(body);
 
     final uploadJson = jsonDecode(body);
@@ -152,7 +152,7 @@ Future<AutomationRunResult> runAutomatedTask({
     }
 
     final qrBytes = await httpClient.readBytes(Uri.parse(qrCode));
-    final qrFilePath = p.join(outputDir.path, qrFileName);
+    final qrFilePath = path.join(outputDir.path, qrFileName);
     await File(qrFilePath).writeAsBytes(qrBytes);
 
     final payload = {
