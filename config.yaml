@@ -1,0 +1,8 @@
+build_apk_path: build/app/outputs/flutter-apk/app-release.apk
+output_dir: output_make_diawi
+diawi_token: eg86CvTUr8mA8lgJk9cOMTBPIkTzTj9qcrqHBwDgDQ
+# Utsav
+#teams_webhook: https://defaultb18cd4c64845498d94ade87c568ba7.ef.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/4e213961ce1f4948bd30ceb2008b5ed3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=u_l96Z8x5wvW5V8eKE-PjgiNJMspEdGqrRzMjT-_5Po
+
+# Ajay
+teams_webhook: https://defaultb18cd4c64845498d94ade87c568ba7.ef.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/d3c35bd55d3f411085fcaa7c3f5842f3/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=7OvvPWFKvSGOaXCbIHYUqiLUYldyTRlDXoyF2HEwqus

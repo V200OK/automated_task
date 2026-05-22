@@ -1,0 +1,6 @@
+# Local runtime config with secrets
+config.yaml
+
+# Local output artifacts
+output_make_diawi/
+
