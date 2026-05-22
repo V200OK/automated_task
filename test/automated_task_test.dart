@@ -69,6 +69,5 @@ teams_webhook: https://example.com/webhook
     expect(result.qrCodeLink, 'https://example.com/qr.png');
     expect(File(result.qrFilePath).existsSync(), isTrue);
     expect(File(result.responseFilePath).existsSync(), isTrue);
-    expect(File(result.preparedApkPath).existsSync(), isTrue);
   });
 }

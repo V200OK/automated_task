@@ -1,4 +1,5 @@
 build_apk_path: /absolute/path/to/app-release.apk
+build_ipa_path: /absolute/path/to/app-release.ipa
 output_dir: /absolute/path/to/output
 diawi_token: your-diawi-token
 teams_webhook: https://your-teams-webhook-url

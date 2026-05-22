@@ -21,14 +21,12 @@ class AutomationRunResult {
     required this.qrCodeLink,
     required this.qrFilePath,
     required this.responseFilePath,
-    required this.preparedApkPath,
   });
 
   final String installLink;
   final String qrCodeLink;
   final String qrFilePath;
   final String responseFilePath;
-  final String preparedApkPath;
 }
 
 Future<AutomationRunResult> runAutomatedTask({
@@ -57,14 +55,16 @@ Future<AutomationRunResult> runAutomatedTask({
     final argumentMap = _parseArguments(arguments);
 
     final prefix = (argumentMap['prefix'] ?? '').toString();
+    final buildFor = (argumentMap['type'] ?? 'android').toString();
+    final availableCommands = ['android', 'ios'];
+    if (!availableCommands.contains(buildFor.toLowerCase())) {
+      throw AutomatedTaskException('Invalid type argument. Available options: ${availableCommands.join(', ')}');
+    }
     final apkPath = config['build_apk_path']?.toString();
+    final ipaPath = config['build_ipa_path']?.toString();
     final outputDirPath = config['output_dir']?.toString();
     final token = config['diawi_token']?.toString();
     final webhook = config['teams_webhook']?.toString();
-
-    if (apkPath == null || apkPath.isEmpty || !File(apkPath).existsSync()) {
-      throw AutomatedTaskException('Invalid build_apk_path');
-    }
 
     if (outputDirPath == null || outputDirPath.isEmpty) {
       throw AutomatedTaskException('Missing output_dir');
@@ -78,31 +78,44 @@ Future<AutomationRunResult> runAutomatedTask({
       throw AutomatedTaskException('Missing teams_webhook');
     }
 
-    final now = nowProvider?.call() ?? DateTime.now();
-    final dateTime = DateFormat('dd_MMM_HH_mm').format(now);
-
-    final uploadFileName = prefix.isEmpty
-        ? '$dateTime.apk'
-        : '${prefix}_$dateTime.apk';
-    final outputFileName = 'diawi_res_$dateTime.json';
-    final qrFileName = 'qrcode_$dateTime.png';
-
     final outputDir = Directory(outputDirPath);
     if (outputDir.existsSync()) {
       await outputDir.delete(recursive: true);
     }
     await outputDir.create(recursive: true);
 
-    final copiedApk = await File(
-      apkPath,
-    ).copy(path.join(outputDir.path, uploadFileName));
+    final now = nowProvider?.call() ?? DateTime.now();
+    final dateTime = DateFormat('dd_MMM_HH_mm').format(now);
+    final outputFileName = 'diawi_res_$dateTime.json';
+    final qrFileName = 'qrcode_$dateTime.png';
 
-    final request =
-        http.MultipartRequest('POST', Uri.parse('https://upload.diawi.com'))
-          ..fields['token'] = token
-          ..files.add(
-            await http.MultipartFile.fromPath('file', copiedApk.path),
-          );
+    http.MultipartRequest request;
+
+    if (buildFor.toLowerCase() == 'ios') {
+      if (ipaPath == null || ipaPath.isEmpty) {
+        throw AutomatedTaskException('Missing build_apk_path for Android build');
+      }
+      final copiedIPA = File(ipaPath);
+      if (!copiedIPA.existsSync()) {
+        throw AutomatedTaskException('IPA file not found at $ipaPath');
+      }
+
+      request = http.MultipartRequest('POST', Uri.parse('https://upload.diawi.com'))
+        ..fields['token'] = token
+        ..files.add(await http.MultipartFile.fromPath('file', copiedIPA.path));
+    } else {
+      if (apkPath == null || apkPath.isEmpty || !File(apkPath).existsSync()) {
+        throw AutomatedTaskException('Missing build_apk_path for Android build');
+      }
+
+      final uploadFileName = prefix.isEmpty ? '$dateTime.apk' : '${prefix}_$dateTime.apk';
+
+      final copiedApk = await File(apkPath).copy(path.join(outputDir.path, uploadFileName));
+
+      request = http.MultipartRequest('POST', Uri.parse('https://upload.diawi.com'))
+        ..fields['token'] = token
+        ..files.add(await http.MultipartFile.fromPath('file', copiedApk.path));
+    }
 
     final uploadResponse = await httpClient.send(request);
     final body = await uploadResponse.stream.bytesToString();
@@ -126,9 +139,7 @@ Future<AutomationRunResult> runAutomatedTask({
     for (var i = 0; i < maxPollAttempts; i++) {
       await Future.delayed(pollInterval);
 
-      final statusUri = Uri.parse(
-        'https://upload.diawi.com/status?token=$token&job=$job',
-      );
+      final statusUri = Uri.parse('https://upload.diawi.com/status?token=$token&job=$job');
       final statusResponse = await httpClient.get(statusUri);
       final statusJson = jsonDecode(statusResponse.body);
 
@@ -144,10 +155,7 @@ Future<AutomationRunResult> runAutomatedTask({
       }
     }
 
-    if (installLink == null ||
-        installLink.isEmpty ||
-        qrCode == null ||
-        qrCode.isEmpty) {
+    if (installLink == null || installLink.isEmpty || qrCode == null || qrCode.isEmpty) {
       throw AutomatedTaskException('Processing not finished. Try again later.');
     }
 
@@ -165,26 +173,13 @@ Future<AutomationRunResult> runAutomatedTask({
             'type': 'AdaptiveCard',
             'version': '1.2',
             'body': [
-              {
-                'type': 'TextBlock',
-                'text': 'New Build Ready!',
-                'weight': 'Bolder',
-                'size': 'Large',
-              },
-              {
-                'type': 'TextBlock',
-                'text': 'Scan QR to Install:',
-                'weight': 'Bolder',
-              },
+              {'type': 'TextBlock', 'text': 'New Build Ready!', 'weight': 'Bolder', 'size': 'Large'},
+              {'type': 'TextBlock', 'text': 'Scan QR to Install:', 'weight': 'Bolder'},
               {'type': 'Image', 'url': qrCode},
               {
                 'type': 'ActionSet',
                 'actions': [
-                  {
-                    'type': 'Action.OpenUrl',
-                    'title': 'Open Build',
-                    'url': installLink,
-                  },
+                  {'type': 'Action.OpenUrl', 'title': 'Open Build', 'url': installLink},
                   {'type': 'Action.OpenUrl', 'title': 'Open QR', 'url': qrCode},
                 ],
               },
@@ -194,11 +189,7 @@ Future<AutomationRunResult> runAutomatedTask({
       ],
     };
 
-    await httpClient.post(
-      Uri.parse(webhook),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(payload),
-    );
+    await httpClient.post(Uri.parse(webhook), headers: {'Content-Type': 'application/json'}, body: jsonEncode(payload));
 
     if (openQr) {
       await _openFile(qrFilePath);
@@ -209,7 +200,6 @@ Future<AutomationRunResult> runAutomatedTask({
       qrCodeLink: qrCode,
       qrFilePath: qrFilePath,
       responseFilePath: responseFilePath,
-      preparedApkPath: copiedApk.path,
     );
   } finally {
     if (ownsClient) {
