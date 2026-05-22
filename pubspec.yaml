@@ -1,6 +1,6 @@
 name: automated_task
 description: Automate APK upload to Diawi and send Teams notifications.
-version: 1.0.0
+version: 1.0.1
 
 environment:
   sdk: ^3.11.4
