@@ -31,7 +31,7 @@ import 'package:automated_task/automated_task.dart';
 
 Future<void> main() async {
   final result = await runAutomatedTask(
-	configPath: 'config.yaml',
+	configPath: 'automated_task_config.yaml',
 	arguments: const ['prefix=dev'],
   );
 
